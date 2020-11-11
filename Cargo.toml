@@ -7,7 +7,21 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+euclid = "0.20"
+env_logger = "*"
+gio = { version = "^0", optional = true }
+gtk = { version = "0.9", features = ["v3_16"], optional = true }
 simpleservo = { path = "../servo/ports/libsimpleservo/api", features = ["layout-2013", "media-dummy"] }
+glutin = { version = "0.25", optional = true }
+surfman = { version = "0.3", features = ["sm-angle-default"] }
+takeable-option = { version = "*", optional = true }
+
+[build-dependencies]
+gl_generator = "0.14"
+
+[features]
+gtk_window = ["gio", "gtk"]
+glutin_window = ["glutin", "takeable-option"]
 
 [patch.crates-io]
 # If you need to temporarily test Servo with a local fork of some upstream
