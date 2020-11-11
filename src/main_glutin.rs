@@ -29,16 +29,21 @@ fn main() {
 
     let gl = support::load(&windowed_context.context());
 
+    let mut prefs = std::collections::HashMap::new();
+    if let Some(arg) = std::env::args().nth(1) {
+        prefs.insert("shell.homepage".to_owned(), PrefValue::Str(arg));
+    }
+
     let gl2 = gl_glue::gl::init().unwrap();
     let opts = InitOptions {
-        args: vec!["https://joshmatthews.net".to_owned()],
+        args: vec![],
         coordinates: Coordinates::new(
             0, 0,
             size.width, size.height,
             size.width, size.height,
         ),
         density: window.scale_factor() as f32,
-        prefs: None,
+        prefs: Some(prefs),
         xr_discovery: None,
         surfman_integration: SurfmanIntegration::Surface,
 
@@ -104,7 +109,7 @@ fn main() {
     let windowed_context = RefCell::new(Some(windowed_context));
 
     el.run(move |event, _, control_flow| {
-        log::trace!("{:?}", event);
+        //println!("{:?}", event);
         *control_flow = ControlFlow::Wait;
 
         match event {
