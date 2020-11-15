@@ -100,7 +100,7 @@ fn main() {
 
     let mut wrapped_context = call(|s| {
         Ok(unsafe {
-            s.surfman_device().create_context_from_native_context(
+            s.surfman().device().create_context_from_native_context(
                 surfman::NativeContext(windowed_context.context().raw_handle()),
             ).unwrap()
         })
@@ -135,7 +135,7 @@ fn main() {
                 let windowed_context2 = windowed_context.borrow_mut().take().unwrap();
                 let windowed_context2 = unsafe { windowed_context2.make_current() }.unwrap();
                 call(|s| {
-                    s.share(|device, surface| {
+                    s.surfman().with_front_buffer(|device, surface| {
                         let info = device.surface_info(&surface);
                         let texture = device.create_surface_texture(&mut wrapped_context, surface).unwrap();
                         let texture_id = device.surface_texture_object(&texture);
