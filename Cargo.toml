@@ -15,6 +15,9 @@ simpleservo = { path = "../servo/ports/libsimpleservo/api", features = ["layout-
 glutin = { version = "0.25", optional = true }
 surfman = { version = "0.3", features = ["sm-angle-default"] }
 takeable-option = { version = "*", optional = true }
+cgl = "0.3"
+gleam = "0.12"
+glib = "*"
 
 [build-dependencies]
 gl_generator = "0.14"
@@ -39,6 +42,8 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 
 # https://github.com/rust-lang/backtrace-rs/pull/363/
 #backtrace = { git = "https://github.com/servo/backtrace-rs", branch = "uwp-fix" }
+
+surfman = { path = "../surfman/surfman" }
 
 [patch."https://github.com/jrmuizel/raqote"]
 raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }

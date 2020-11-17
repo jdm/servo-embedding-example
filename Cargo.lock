@@ -3028,10 +3028,13 @@ dependencies = [
 name = "lepton"
 version = "0.1.0"
 dependencies = [
+ "cgl",
  "env_logger",
  "euclid",
  "gio",
  "gl_generator 0.14.0",
+ "gleam 0.12.2",
+ "glib",
  "glutin",
  "gtk",
  "simpleservo",
@@ -5640,8 +5643,6 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3d85bf0eb91b66b93dda5c04627f00074ea1fa008c2980b132a065fafe7a1ab"
 dependencies = [
  "bitflags",
  "cfg_aliases",
