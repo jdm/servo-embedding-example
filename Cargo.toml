@@ -40,11 +40,6 @@ glutin_window = ["glutin", "takeable-option"]
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 
-# https://github.com/rust-lang/backtrace-rs/pull/363/
-#backtrace = { git = "https://github.com/servo/backtrace-rs", branch = "uwp-fix" }
-
-surfman = { path = "../surfman/surfman" }
-
 [patch."https://github.com/jrmuizel/raqote"]
 raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
 
