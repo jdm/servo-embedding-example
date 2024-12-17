@@ -7,13 +7,15 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-euclid = "0.20"
+euclid = "0.22"
 env_logger = "*"
 gio = { version = "^0", optional = true }
-gtk = { version = "0.9", features = ["v3_16"], optional = true }
-simpleservo = { path = "../servo/ports/libsimpleservo/api", features = ["layout-2013", "media-dummy"] }
-glutin = { version = "0.25", optional = true }
-surfman = { version = "0.3", features = ["sm-angle-default"] }
+gtk = { version = "0.18", features = ["v3_24"], optional = true }
+libservo = { path = "../servo/components/servo", default-features = false }
+#simpleservo = { path = "../servo/ports/libsimpleservo/api", features = ["layout-2013", "media-dummy"] }
+glutin = { version = "0.29", optional = true, default-features = false }
+surfman = { git = "https://github.com/servo/surfman", default-features = false, features = ["sm-angle-default", "sm-raw-window-handle-05"], rev = "c8d6b4b65aeab739ee7651602e29c8d58ceee123" }
+raw-window-handle = "0.5"
 takeable-option = { version = "*", optional = true }
 cgl = "0.3"
 gleam = "0.12"
@@ -38,12 +40,12 @@ glutin_window = ["glutin", "takeable-option"]
 #     <crate> = { path = "/path/to/local/checkout" }
 
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
-mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
+#mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 
-[patch."https://github.com/jrmuizel/raqote"]
-raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
+#[patch."https://github.com/jrmuizel/raqote"]
+#raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
 
 # https://github.com/servo/servo/issues/27515#issuecomment-671474054
-[patch."https://github.com/servo/webrender"]
-webrender = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
-webrender_api = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
+#[patch."https://github.com/servo/webrender"]
+#webrender = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
+#webrender_api = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
