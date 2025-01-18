@@ -1,35 +1,47 @@
-use ::euclid::{Size2D, Scale};
-use glutin::dpi::{/*PhysicalPosition,*/ PhysicalSize};
-use glutin::event::{Event, WindowEvent};
+use euclid::{Point2D, Size2D, Scale};
+use glutin::dpi::{PhysicalPosition, PhysicalSize};
+use glutin::event::{Event, WindowEvent, MouseButton, ElementState};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
-use glutin::window::WindowBuilder;
+use glutin::window::{CursorIcon, WindowBuilder};
 use glutin::ContextBuilder;
 //use glutin::WindowedContext;
 use glutin::platform::ContextTraitExt;
 use raw_window_handle::{/*HasRawWindowHandle,*/ HasRawDisplayHandle};
 use servo::*;
 //use servo::config::prefs::PrefValue;
+use servo::base::id::WebViewId;
 use servo::compositing::CompositeTarget;
 use servo::compositing::windowing::EmbedderCoordinates;
 use servo::compositing::windowing::AnimationState;
-use servo::compositing::windowing::{EmbedderMethods, EmbedderEvent, WindowMethods};
-use servo::embedder_traits::{EventLoopWaker, EmbedderMsg};
+use servo::compositing::windowing::{EmbedderMethods, EmbedderEvent, WindowMethods, MouseWindowEvent};
+use servo::config::opts::Opts;
+use servo::config::prefs::Preferences;
+use servo::embedder_traits::{EventLoopWaker, EmbedderMsg, CompositorEventVariant, Cursor};
+use servo::script_traits::MouseButton as ServoMouseButton;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntPoint};
 use servo::webrender_traits::RenderingContext;
 use servo::webrender_api::units::DevicePixel;
 use servo::url::ServoUrl;
-use surfman::{Connection, SurfaceType};
+use surfman::Connection;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 mod support;
 
-pub fn glutin_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
+fn glutin_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
     Size2D::new(size.width, size.height)
+}
+
+fn glutin_position_to_euclid_point<T>(position: PhysicalPosition<T>) -> Point2D<T, DevicePixel> {
+    Point2D::new(position.x, position.y)
 }
 
 fn main() {
     //env_logger::init();
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Error initializing crypto provider");
+
     let el = EventLoop::new();
     let proxy = el.create_proxy();
     let wb = WindowBuilder::new().with_title("A fantastic window!");
@@ -67,7 +79,6 @@ fn main() {
     }
 
     struct Window {
-        rendering_context: RenderingContext,
         coordinates: RefCell<EmbedderCoordinates>,
         animating: Cell<bool>,
     }
@@ -79,9 +90,9 @@ fn main() {
             self.animating.set(state == AnimationState::Animating);
             //println!("animation state: {:?}", _state);
         }
-        fn rendering_context(&self) -> RenderingContext {
+        /*fn rendering_context(&self) -> RenderingContext {
             self.rendering_context.clone()
-        }
+        }*/
     }
 
     // Initialize surfman
@@ -94,8 +105,8 @@ fn main() {
         .expect("Failed to create adapter");
 
     let inner_size = window.inner_size();
-    let surface_type = SurfaceType::Generic { size: glutin_size_to_euclid_size(inner_size).to_i32().to_untyped() };
-    let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
+    let surface_size = glutin_size_to_euclid_size(inner_size).to_i32().to_untyped();
+    let rendering_context = RenderingContext::create(&connection, &adapter, Some(surface_size))
         .expect("Failed to create WR surfman");
 
     let viewport_origin = DeviceIntPoint::zero(); // bottom left
@@ -104,7 +115,6 @@ fn main() {
 
     let app_window = Rc::new(Window {
         animating: Cell::new(false),
-        rendering_context: rendering_context.clone(),
         coordinates: RefCell::new(EmbedderCoordinates {
             hidpi_factor: Scale::new(window.scale_factor() as f32),
             screen_size: viewport.size().cast_unit(),
@@ -114,7 +124,12 @@ fn main() {
             viewport,
         }),
     });
-    let servo_data = Servo::new(
+    let opts = Opts::default();
+    let prefs = Preferences::default();
+    let mut servo = Servo::new(
+        opts,
+        prefs,
+        rendering_context.clone(),
         Box::new(Embedder {
             waker: Waker(proxy),
         }),
@@ -122,12 +137,11 @@ fn main() {
         None,
         CompositeTarget::Window,
     );
-    let browser_id = servo_data.browser_id;
-    let mut servo = servo_data.servo;
+    let browser_id = WebViewId::new();
     servo.setup_logging();
     servo.handle_events(vec![EmbedderEvent::NewWebView(
         ServoUrl::parse("http://neverssl.com").unwrap(),
-        servo_data.browser_id,
+        browser_id,
     )]);
 
     let mut wrapped_context = unsafe {
@@ -139,11 +153,11 @@ fn main() {
     let windowed_context = RefCell::new(Some(windowed_context));
 
     let mut servo = Some(servo);
+    let mut cursor_pos = Point2D::zero();
 
     el.run(move |event, _, control_flow| {
         //println!("{:?}", event);
         *control_flow = if app_window.animating.get() { ControlFlow::Poll } else { ControlFlow::Wait };
-
         let mut events = vec![];
         match event {
             Event::LoopDestroyed => {
@@ -169,6 +183,46 @@ fn main() {
                     }
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit
+                    }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        let position = glutin_position_to_euclid_point(position);
+                        cursor_pos = position;
+                        events.push(EmbedderEvent::MouseWindowMoveEventClass(position.to_f32()));
+                    }
+                    WindowEvent::MouseInput { state, button, .. } => {
+                        if button == MouseButton::Left {
+                            match state {
+                                ElementState::Pressed => {
+                                    events.push(
+                                        EmbedderEvent::MouseWindowEventClass(
+                                            MouseWindowEvent::MouseDown(
+                                                ServoMouseButton::Left,
+                                                cursor_pos.to_f32(),
+                                            )
+                                        )
+                                    );
+                                }
+                                ElementState::Released => {
+                                    events.push(
+                                        EmbedderEvent::MouseWindowEventClass(
+                                            MouseWindowEvent::MouseUp(
+                                                ServoMouseButton::Left,
+                                                cursor_pos.to_f32(),
+                                            )
+                                        )
+                                    );
+
+                                    events.push(
+                                        EmbedderEvent::MouseWindowEventClass(
+                                            MouseWindowEvent::Click(
+                                                ServoMouseButton::Left,
+                                                cursor_pos.to_f32(),
+                                            )
+                                        )
+                                    );
+                                }
+                            }
+                        }
                     }
                     _ => (),
                 }
@@ -210,17 +264,35 @@ fn main() {
             if servo_events.len() == 0 {
                 break;
             }
-            for event in servo_events {
-                println!("{:?}", event);
-                if let EmbedderMsg::ReadyToPresent(_) = event.1 {
+            for (webview_id, event) in servo_events {
+                if !matches!(event, EmbedderMsg::EventDelivered(CompositorEventVariant::MouseMoveEvent)) {
+                    println!("{:?}", (webview_id, &event));
+                }
+                if let EmbedderMsg::ReadyToPresent(_) = event {
                     need_present |= true;
                     windowed_context.borrow().as_ref().unwrap().window().request_redraw();
                 }
-                if let EmbedderMsg::Shutdown = event.1 {
+                if let EmbedderMsg::Shutdown = event {
                     shutting_down = true;
                     break;
                 }
-                if let EmbedderMsg::WebViewOpened(new_webview_id) = event.1 {
+                if let EmbedderMsg::AllowNavigationRequest(id, ..) = event {
+                    events.push(EmbedderEvent::AllowNavigationResponse(id, true));
+                }
+                if let EmbedderMsg::SetCursor(cursor) = event {
+                    let windowed_context2 = windowed_context.borrow_mut().take().unwrap();
+                    let window = windowed_context2.window();
+                    if let Some(cursor) = match cursor {
+                        Cursor::None => Some(CursorIcon::Default),
+                        Cursor::Pointer => Some(CursorIcon::Hand),
+                        Cursor::Text => Some(CursorIcon::Text),
+                        _ => None,
+                    } {
+                        window.set_cursor_icon(cursor);
+                    }
+                    *windowed_context.borrow_mut() = Some(windowed_context2);
+                }
+                if let EmbedderMsg::WebViewOpened(new_webview_id) = event {
                     let rect = app_window.get_coordinates().get_viewport().to_f32();
                     events.push(EmbedderEvent::FocusWebView(new_webview_id));
                     events.push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));

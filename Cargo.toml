@@ -11,11 +11,12 @@ euclid = "0.22"
 env_logger = "*"
 gio = { version = "^0", optional = true }
 gtk = { version = "0.18", features = ["v3_24"], optional = true }
-libservo = { path = "../servo/components/servo", default-features = false }
+libservo = { path = "../alt-servo/components/servo", default-features = false }
 #simpleservo = { path = "../servo/ports/libsimpleservo/api", features = ["layout-2013", "media-dummy"] }
 glutin = { version = "0.29", optional = true, default-features = false }
-surfman = { git = "https://github.com/servo/surfman", default-features = false, features = ["sm-angle-default", "sm-raw-window-handle-05"], rev = "c8d6b4b65aeab739ee7651602e29c8d58ceee123" }
+surfman = { git = "https://github.com/servo/surfman", default-features = false, features = ["sm-angle-default", "sm-raw-window-handle-05"], rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6" }
 raw-window-handle = "0.5"
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 takeable-option = { version = "*", optional = true }
 cgl = "0.3"
 gleam = "0.12"
