@@ -16,12 +16,12 @@ use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::{EmbedderMethods, EmbedderEvent, WindowMethods, MouseWindowEvent};
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::embedder_traits::{EventLoopWaker, EmbedderMsg, CompositorEventVariant, Cursor};
-use servo::script_traits::MouseButton as ServoMouseButton;
+use servo::{EventLoopWaker, EmbedderMsg, CompositorEventVariant, Cursor};
+use servo::MouseButton as ServoMouseButton;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntPoint};
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::rendering_context::SurfmanRenderingContext;
 use servo::webrender_api::units::DevicePixel;
-use servo::url::ServoUrl;
+use servo::servo_url::ServoUrl;
 use surfman::Connection;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -90,9 +90,6 @@ fn main() {
             self.animating.set(state == AnimationState::Animating);
             //println!("animation state: {:?}", _state);
         }
-        /*fn rendering_context(&self) -> RenderingContext {
-            self.rendering_context.clone()
-        }*/
     }
 
     // Initialize surfman
@@ -106,7 +103,7 @@ fn main() {
 
     let inner_size = window.inner_size();
     let surface_size = glutin_size_to_euclid_size(inner_size).to_i32().to_untyped();
-    let rendering_context = RenderingContext::create(&connection, &adapter, Some(surface_size))
+    let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, Some(surface_size))
         .expect("Failed to create WR surfman");
 
     let viewport_origin = DeviceIntPoint::zero(); // bottom left
@@ -126,6 +123,7 @@ fn main() {
     });
     let opts = Opts::default();
     let prefs = Preferences::default();
+    let rendering_context = Rc::new(rendering_context);
     let mut servo = Servo::new(
         opts,
         prefs,
